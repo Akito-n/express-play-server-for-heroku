@@ -3,6 +3,7 @@ var cors = require('cors');
 var app = express();
 app.use(express.json());
 app.use(cors());
+app.use(express.static('build'));
 var notes = [
     {
         id: 1,
