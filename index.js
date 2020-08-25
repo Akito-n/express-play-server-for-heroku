@@ -2,7 +2,7 @@
 exports.__esModule = true;
 require('dotenv').config();
 var express = require('express');
-var Note = require('./models/note.ts');
+var Note = require('./models/note.js');
 var cors = require('cors');
 var app = express();
 app.use(express.static('build'));
