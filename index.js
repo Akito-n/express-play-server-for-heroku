@@ -1,74 +1,76 @@
+"use strict";
+exports.__esModule = true;
+require('dotenv').config();
 var express = require('express');
+var Note = require('./models/note.ts');
 var cors = require('cors');
 var app = express();
-app.use(express.json());
-app.use(cors());
 app.use(express.static('build'));
-var notes = [
-    {
-        id: 1,
-        content: "HTML is easy",
-        date: "2019-05-30T17:30:31.098Z",
-        important: true
-    },
-    {
-        id: 2,
-        content: "Browser can execute only Javascript",
-        date: "2019-05-30T18:39:34.091Z",
-        important: false
-    },
-    {
-        id: 3,
-        content: "GET and POST are the most important methods of HTTP protocol",
-        date: "2019-05-30T19:20:14.298Z",
-        important: true
-    }
-];
-app.get('/', function (req, res) {
-    res.send('<h1>Hello World</h1>');
-});
+app.use(express.json());
+//app.use(logger)
+app.use(cors());
 app.get('/api/notes', function (req, res) {
-    res.json(notes);
+    Note.find({}).then(function (notes) {
+        res.json(notes);
+    });
 });
-app.get('/api/notes/:id', function (request, response) {
-    var id = Number(request.params.id);
-    console.log(id);
-    var note = notes.find(function (note) { return note.id === id; });
-    if (note) {
-        response.json(note);
-    }
-    else {
-        response.status(404).end();
-    }
+app.get('/api/notes/:id', function (request, response, next) {
+    Note.findById(request.params.id).then(function (note) {
+        if (note) {
+            response.json(note);
+        }
+        else {
+            response.status(404).end();
+        }
+    })["catch"](function (error) { return next(error); });
 });
-var generateId = function () {
-    var maxId = notes.length > 0 ? Math.max.apply(Math, notes.map(function (n) { return n.id; })) : 0;
-    return maxId + 1;
-};
-app.post('/api/notes', function (request, response) {
+app.post('/api/notes', function (request, response, next) {
     var body = request.body;
-    if (!body.content) {
+    if (body.content === undefined) {
         return response.status(400).json({ error: 'content missing' });
     }
-    var note = {
+    var note = new Note({
         content: body.content,
         important: body.important || false,
-        date: new Date(),
-        id: generateId()
+        date: new Date()
+    });
+    note.save().then(function (savedNote) {
+        response.json(savedNote);
+    })["catch"](function (error) { return next(error); });
+});
+app["delete"]('/api/notes/:id', function (request, response, next) {
+    Note.findByIdAndRemove(request.params.id)
+        .then(function (result) {
+        response.status(204).end();
+    })["catch"](function (error) { return next(error); });
+});
+app.put('/api/notes/:id', function (request, response, next) {
+    console.log('putted');
+    var body = request.body;
+    var note = {
+        content: body.content,
+        important: body.important
     };
-    notes = notes.concat(note);
-    console.log('post record', note);
-    response.json(note);
+    Note.findByIdAndUpdate(request.params.id, note, { "new": true })
+        .then(function (updatedNote) {
+        response.json(updatedNote);
+    })["catch"](function (error) { return next(error); });
 });
-app["delete"]('/api/notes/:id', function (request, response) {
-    var id = Number(request.params.id);
-    notes = notes.filter(function (note) { return note.id === id; });
-    response.status(204).end();
-});
-//   const app = http.createServer((req, res) => {
-//   res.writeHead(200, { 'Content-Type' : 'text/plain'})
-//   res.end(JSON.stringify(notes))
-// })
-var PORT = process.env.PORT || 3008;
+var unknownEndpoint = function (request, response) {
+    response.status(404).send({ error: 'unknown endpoint' });
+};
+app.use(unknownEndpoint);
+var errorHandler = function (error, request, response, next) {
+    console.error(error.message);
+    if (error.name === 'CastError') {
+        return response.status(400).send({ error: 'malformatted id' });
+    }
+    else if (error.name === 'ValidationError') {
+        return response.status(400).json({ error: error.message });
+    }
+    next(error);
+};
+app.use(errorHandler);
+var PORT = process.env.PORT;
 app.listen(PORT);
 console.log("server running on port " + PORT);
