@@ -4,7 +4,7 @@
   "description": "'part3'",
   "main": "index.ts",
   "scripts": {
-    "start": "node index.ts",
+    "start": "node index.js",
     "dev": "nodemon index.ts",
     "test": "echo test"
   },
@@ -17,7 +17,10 @@
   "dependencies": {
     "@types/node": "^14.6.0",
     "cors": "^2.8.5",
+    "dotenv": "^8.2.0",
     "express": "^4.17.1",
+    "mongoose": "^5.10.0",
+    "mongose": "0.0.2-security",
     "ts-node": "^8.10.2"
   }
 }
